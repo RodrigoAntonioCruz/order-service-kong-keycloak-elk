@@ -1,0 +1,259 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    ports:
+      - "27017:27017"
+    networks:
+      - app-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - app-net
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
+      KAFKA_ZOOKEEPER_CONNECT: ${KAFKA_ZOOKEEPER_CONNECT}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: ${KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS}
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: ${KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR}
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: ${KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL:${KAFKA_PLAINTEXT},EXTERNAL:${KAFKA_PLAINTEXT_HOST}
+      KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: ${KAFKA_SASL_MECHANISM}
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: ${KAFKA_SASL_MECHANISM}
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: ${KAFKA_SASL_MECHANISM}
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="${KAFKA_INTERNAL_USER}" \
+        password="${KAFKA_INTERNAL_PASSWORD}" \
+        user_${KAFKA_INTERNAL_USER}="${KAFKA_INTERNAL_PASSWORD}";
+      KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="${KAFKA_EXTERNAL_USER}" \
+        password="${KAFKA_EXTERNAL_PASSWORD}" \
+        user_${KAFKA_EXTERNAL_USER}="${KAFKA_EXTERNAL_PASSWORD}";
+      KAFKA_INTER_BROKER_LISTENER_NAME: ${KAFKA_INTER_BROKER_LISTENER_NAME}
+    networks:
+      - app-net
+    ports:
+      - "9092:9092"
+
+  redis:
+    image: redis:6.2.5
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis:/var/lib/redis
+      - redis-config:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - app-net
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+      REDIS_HOSTS: ${REDIS_HOSTS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_HOST}:${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      HTTP_USER: ${REDIS_COMMANDER_USER}
+      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD}
+    ports:
+      - "8081:8081"
+    networks:
+      - app-net
+
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.16
+#    container_name: elasticsearch
+#    restart: unless-stopped
+#    environment:
+#      discovery.type: single-node
+#      xpack.security.enabled: false
+#      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
+#    networks:
+#      - app-net
+#
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:7.17.16
+#    container_name: logstash
+#    restart: unless-stopped
+#    depends_on:
+#      - elasticsearch
+#    volumes:
+#      - ./observability/logstash/pipeline:/usr/share/logstash/pipeline/
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:9600"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#    ports:
+#      - "5044:5044"
+#    networks:
+#      - app-net
+#
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:7.17.16
+#    container_name: kibana
+#    restart: unless-stopped
+#    depends_on:
+#      - elasticsearch
+#    environment:
+#      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:5601"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#    ports:
+#      - "5601:5601"
+#    networks:
+#      - app-net
+#
+#  filebeat:
+#    build: ./observability/filebeat
+#    container_name: filebeat
+#    restart: unless-stopped
+#    depends_on:
+#      - elasticsearch
+#      - logstash
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - /var/lib/docker/containers:/usr/share/dockerlogs/data:ro
+#    networks:
+#      - app-net
+#
+#  prometheus:
+#    image: prom/prometheus:v2.48.1
+#    container_name: prometheus
+#    restart: unless-stopped
+#    volumes:
+#      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    healthcheck:
+#      test: ["CMD", "nc", "-z", "localhost", "9090"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#    ports:
+#      - "9090:9090"
+#    networks:
+#      - app-net
+#
+#  grafana:
+#    image: grafana/grafana:9.5.15
+#    container_name: grafana
+#    restart: unless-stopped
+#    environment:
+#      - GF_USERS_ALLOW_SIGN_UP=false
+#    depends_on:
+#      - prometheus
+#    volumes:
+#      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+#    healthcheck:
+#      test: ["CMD", "nc", "-z", "localhost", "3000"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#    ports:
+#      - "3000:3000"
+#    networks:
+#      - app-net
+#
+#  spring-app:
+#    build: .
+#    container_name: spring-app
+#    depends_on:
+#      - mongo
+#    environment:
+#      # Spring Boot
+#      SPRING_APPLICATION_NAME: example
+#      SPRING_APP_VERSION: v@project.version@
+#      SPRING_PROFILES_ACTIVE: dev
+#      SERVER_PORT: 8887
+#      SERVER_SERVLET_CONTEXT_PATH: /v1/api
+#      SPRING_MVC_LOCALE: pt_BR
+#
+#      # Management
+#      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: '*'
+#      MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED: true
+#      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+#      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+#      MANAGEMENT_HEALTH_PROBES_ENABLED: true
+#
+#      # Jackson
+#      SPRING_JACKSON_DATE_FORMAT: dd/MM/yyyy HH:mm:ss
+#      SPRING_JACKSON_TIME_ZONE: Brazil/East
+#
+#      # Multipart
+#      SPRING_SERVLET_MULTIPART_ENABLED: true
+#      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 2MB
+#      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 2MB
+#
+#      # Redis
+#      SPRING_REDIS_HOST: ${REDIS_HOST}
+#      SPRING_REDIS_PORT: ${REDIS_PORT}
+#      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+#
+#      # MongoDB
+#      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${MONGO_INITDB_HOST}:${MONGO_INITDB_PORT}/${MONGO_INITDB_DATABASE}?authSource=admin&readPreference=primary&appname=spring-app&directConnection=true&ssl=false
+#
+#      # Kafka
+#      SPRING_KAFKA_MAX_BLOCK_MS: 10000
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+#      SPRING_KAFKA_AUTO_OFFSET_RESET: earliest
+#      SPRING_KAFKA_AUTO_CREATE_TOPICS: false
+#      SPRING_KAFKA_MAX_ATTEMPT_RETRY: 4
+#      SPRING_KAFKA_GROUP_ID: spring.kafka.group-id
+#      SPRING_KAFKA_TOPIC_ORDER_NAME: topic-order-dev
+#
+#      # Logs
+#      LOG_LEVEL: INFO
+#      LOGGING_LEVEL_ROOT: ${LOG_LEVEL}
+#      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: ${LOG_LEVEL}
+#      LOGGING_LEVEL_BR_COM_RD: ${LOG_LEVEL}
+#      LOGGING_LEVEL_COM_RD: ${LOG_LEVEL}
+#    ports:
+#      - "8887:8887"
+#    networks:
+#      - app-net
+
+volumes:
+  redis:
+  redis-config:
+
+networks:
+  app-net:
+    driver: bridge
