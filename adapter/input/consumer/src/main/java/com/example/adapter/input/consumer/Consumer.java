@@ -53,7 +53,7 @@ public class Consumer {
 
     /**
      *
-     * Esse é um teste de CK
+     * Esse é um teste rrrrrrrrrrrrrrrrrvv de CK
      *
      * **/
     @RetryableTopic(
@@ -83,9 +83,6 @@ public class Consumer {
                                                  Constants.LOG_METHOD_CONSUME, ExceptionResolver.getCauseException(e));
         } finally {
             pendingOrdersCount.decrementAndGet();
-            if (pendingOrdersCount.get() == 0) {
-                isUnificationScheduled.set(true);
-            }
         }
     }
 
