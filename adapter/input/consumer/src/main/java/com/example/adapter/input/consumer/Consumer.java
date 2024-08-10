@@ -51,6 +51,11 @@ public class Consumer {
     private final AtomicBoolean isUnificationScheduled = new AtomicBoolean(false);
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+    /**
+     *
+     * Esse é um teste de CK
+     *
+     * **/
     @RetryableTopic(
             backoff = @Backoff(value = 1000),
             attempts = "${spring.kafka.max-attemp-retry}",
@@ -67,8 +72,6 @@ public class Consumer {
             FileOrderLine line = objectMapper.readValue(payload, FileOrderLine.class);
 
             userInputPort.save(new User(line.getUserId(), line.getUserName()));
-
-            productInputPort.save(new Product(line.getProdId(), line.getValue()));
 
             orderInputPort.save(new Order(line.getOrderId(), line.getUserId(), line.getValue(), line.getDate(), List.of(line.getProdId())));
 

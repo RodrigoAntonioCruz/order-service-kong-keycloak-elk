@@ -41,6 +41,12 @@ public class OrderController {
 
     private final FindOrderByFilterInputPort findOrderByFilterInputPort;
 
+
+    /**
+     *
+     * Esse é um teste de CK
+     *
+     * **/
     @PostMapping(value = "/upload", consumes= MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(description = "Realiza upload de um arquivo de texto com pedidos para processamento")
     @ApiResponses(value = {
@@ -59,31 +65,4 @@ public class OrderController {
 
         return ResponseEntity.noContent().build();
     }
-    @GetMapping(value = "/search")
-    @Operation(description = "Realiza busca paginada de pedidos por filtros")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Solicitação realizada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Inconsistência nos dados informados."),
-            @ApiResponse(responseCode = "401", description = "Acesso não autorizado"),
-            @ApiResponse(responseCode = "500", description = "Sistema indisponível no momento")})
-    public ResponseEntity<Page<OrderDTO>> findOrderByFilter(@RequestParam(value = "query", defaultValue = "") String query,
-                                                            @RequestParam(value = "page", defaultValue = "0") Integer page,
-                                                            @RequestParam(value = "linesPerPage", defaultValue = "100") Integer linesPerPage,
-                                                            @RequestParam(value = "direction", defaultValue = "ASC") String direction,
-                                                            @RequestParam(value = "orderBy", defaultValue = "id") String orderBy) {
-
-        var list = findOrderByFilterInputPort.findByFilter(query);
-
-        log.info(Constants.LOG_KEY_MESSAGE + Constants.LOG_KEY_METHOD + Constants.LOG_KEY_ENTITY_ID,
-                "Início da busca da paginada de usuários por filtros ", Constants.LOG_METHOD_FIND_BY_FILTER, list);
-
-        var pageable = PageRequest.of(page, linesPerPage, Sort.Direction.valueOf(direction), orderBy);
-        var pages = PageUtils.toPage(list, pageable, list.size(), mapper::toOrderDTO, orderBy, OrderDTO.class);
-
-        log.info(Constants.LOG_KEY_MESSAGE + Constants.LOG_KEY_METHOD + Constants.LOG_KEY_ENTITY,
-                "Fim da busca da paginada de usuários por filtros ", Constants.LOG_METHOD_FIND_BY_FILTER, pages.getContent());
-
-        return ResponseEntity.ok().body(pages);
-    }
-
 }

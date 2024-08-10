@@ -33,22 +33,7 @@ O projeto está dividido em diferentes módulos e pacotes, seguindo os princípi
   <li> Java 17
   <li> Spring Boot 
   <li> Maven
-  <li> Lombok
-  <li> Docker
-  <li> MongoDB
   <li> Swagger
-</ul>
-
-### Requisitos
-
-Para rodar esta aplicação, você deve ter instalado em seu computador:
-
-<ul>  
-   <li><a href="https://www.oracle.com/java/technologies/javase/jdk17-readme-downloads.html" target="_blank">Java 17</a>
-
-   <li><a href="https://maven.apache.org/download.cgi" target="_blank">Maven 3.9.5</a>
-
-   <li><a href="https://docs.docker.com/get-started/" target="_blank">Docker</a>
 </ul>
 
 ### Executando o projeto
